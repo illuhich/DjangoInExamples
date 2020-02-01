@@ -4,29 +4,37 @@ from .models import Post
 from django.views.generic import ListView
 from .forms import EmailPostForm, EmailPostForm2, CommentForm
 from django.core.mail import send_mail
+from taggit.models import Tag
+from django.db.models import Count
 
 
-# def post_list(request):
-# 	# posts = Post.objects.filter(status='published')
-# 	object_list = Post.objects.all()
-# 	paginator = Paginator(object_list, 3)
-# 	page = request.GET.get('page')
-# 	try:
-# 		posts = paginator.page(page)
-# 	except PageNotAnInteger:
-# 		# if page is not an integer deliver the first page
-# 		posts = paginator.page(1)
-# 	except EmptyPage:
-# 		# if page is out of range deliver the last page of results
-# 		posts =  paginator.page(paginator.num_pages)
-# 	context = {'posts': posts, 'page': page}
-# 	return render(request, 'post/list.html', context)
+def post_list(request, tag_slug=None):
+	# posts = Post.objects.filter(status='published')
+	object_list = Post.objects.all()
+	tag = None
 
-class PostListView(ListView):
-	queryset = Post.objects.all()
-	context_object_name = 'posts'
-	paginate_by = 3
-	template_name = 'post/list.html'
+	if tag_slug:
+		tag = get_object_or_404(Tag, slug=tag_slug)
+		object_list = Post.objects.filter(tags__in=[tag])
+
+	paginator = Paginator(object_list, 3)
+	page = request.GET.get('page')
+	try:
+		posts = paginator.page(page)
+	except PageNotAnInteger:
+		# if page is not an integer deliver the first page
+		posts = paginator.page(1)
+	except EmptyPage:
+		# if page is out of range deliver the last page of results
+		posts =  paginator.page(paginator.num_pages)
+	context = {'posts': posts, 'page': page, 'tag': tag}
+	return render(request, 'post/list.html', context)
+
+# class PostListView(ListView):
+# 	queryset = Post.objects.all()
+# 	context_object_name = 'posts'
+# 	paginate_by = 3
+# 	template_name = 'post/list.html'
 
 
 def post_detail(request, year, month, day, post):
@@ -48,7 +56,10 @@ def post_detail(request, year, month, day, post):
 			new_comment.save()
 	else:
 		comment_form = CommentForm()
-	context = {'post':post, 'comments': comments, 'comment_form': comment_form}
+	post_tags_ids = post.tags.values_list('id', flat=True)
+	similar_posts = Post.objects.filter(tags__in=post_tags_ids).exclude(id=post.id)
+	similar_posts = similar_posts.annotate(same_tags=Count('tags')).order_by('-same_tags', '-publish')[:4]
+	context = {'post':post, 'comments': comments, 'comment_form': comment_form, 'similar_posts': similar_posts}
 	return render(request, 'post/detail.html', context)
 
 
