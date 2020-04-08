@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+from decouple import config
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -25,7 +26,7 @@ SECRET_KEY = 'ijo3)v&%u&zyf7-@&m$rg9y6y!ww0r6q^q@0rpfg7l^tqgjalm'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -34,6 +35,7 @@ INSTALLED_APPS = [
     'shop',
     'cart',
     'orders',
+    'payment',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -128,3 +130,18 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
 CART_SESSION_ID = 'cart'
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+BRAINTREE_MERCHANT_ID = config('BRAINTREE_MERCHANT_ID') # Merchant ID 
+BRAINTREE_PUBLIC_KEY = config('BRAINTREE_PUBLIC_KEY') # Public Key 
+BRAINTREE_PRIVATE_KEY = config('BRAINTREE_PRIVATE_KEY')
+
+from braintree import Configuration, Environment
+
+Configuration.configure( 
+    Environment.Sandbox, 
+    BRAINTREE_MERCHANT_ID, 
+    BRAINTREE_PUBLIC_KEY, 
+    BRAINTREE_PRIVATE_KEY
+)
